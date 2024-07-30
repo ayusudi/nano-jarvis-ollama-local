@@ -2,15 +2,18 @@ import fs from "fs";
 import http from "http";
 
 const LLM_API_BASE_URL =
-    process.env.LLM_API_BASE_URL || "http://localhost:11434/v1";
-const LLM_API_KEY = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
+    process.env.LLM_API_BASE_URL || "https://api.groq.com/openai/v1";
+const LLM_API_KEY =
+    process.env.LLM_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    "gsk_yourgroqapikeyhere";
 const LLM_CHAT_MODEL = process.env.LLM_CHAT_MODEL;
 const LLM_STREAMING = process.env.LLM_STREAMING !== "no";
 
 const chat = async (messages, handler) => {
     const url = `${LLM_API_BASE_URL}/chat/completions`;
     const auth = LLM_API_KEY ? { Authorization: `Bearer ${LLM_API_KEY}` } : {};
-    const model = LLM_CHAT_MODEL || "llama3.1";
+    const model = LLM_CHAT_MODEL || "llama-3.1-8b-instant";
     const max_tokens = 400;
     const temperature = 0;
     const stream = LLM_STREAMING && typeof handler === "function";
