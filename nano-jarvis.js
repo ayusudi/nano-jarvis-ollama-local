@@ -2,18 +2,15 @@ import fs from "fs";
 import http from "http";
 
 const LLM_API_BASE_URL =
-    process.env.LLM_API_BASE_URL || "https://api.groq.com/openai/v1";
-const LLM_API_KEY =
-    process.env.LLM_API_KEY ||
-    process.env.OPENAI_API_KEY ||
-    "gsk_yourgroqapikeyhere";
+    process.env.LLM_API_BASE_URL || "http://localhost:11434/v1";
+const LLM_API_KEY = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
 const LLM_CHAT_MODEL = process.env.LLM_CHAT_MODEL;
 const LLM_STREAMING = process.env.LLM_STREAMING !== "no";
 
 const chat = async (messages, handler) => {
     const url = `${LLM_API_BASE_URL}/chat/completions`;
     const auth = LLM_API_KEY ? { Authorization: `Bearer ${LLM_API_KEY}` } : {};
-    const model = LLM_CHAT_MODEL || "llama-3.1-8b-instant";
+    const model = LLM_CHAT_MODEL || "llama3.1";
     const max_tokens = 400;
     const temperature = 0;
     const stream = LLM_STREAMING && typeof handler === "function";
@@ -105,9 +102,20 @@ const chat = async (messages, handler) => {
     return answer;
 };
 
-const REPLY_PROMPT = `You are a helpful answering assistant.
-Your task is to reply and respond to the user politely and concisely.
-Answer in plain text (concisely, maximum 3 sentences) and not in Markdown format.`;
+const REPLY_PROMPT = `You are a travel assistant. You decide one best airport.
+
+Example
+User: "I want to fly from Jakarta to Medan"
+Assistant: Airport codes [CGK, KNO]
+
+User: "I want to fly from Jakarta to Beijing"
+Assistant: Airport codes [CGK, PEK]
+
+User: "I want to fly from Jakarta to California"
+Assistant: Airport codes [CGK, SFO]
+
+Now it's your turn!
+`;
 
 const reply = async (context) => {
     const { inquiry, history, stream } = context;
@@ -117,7 +125,11 @@ const reply = async (context) => {
     const relevant = history.slice(-4);
     relevant.forEach((msg) => {
         const { inquiry, answer } = msg;
-        messages.push({ role: "user", content: inquiry });
+        messages.push({
+            role: "user",
+            content: `${inquiry}
+Assistant: Airport codes `,
+        });
         messages.push({ role: "assistant", content: answer });
     });
     messages.push({ role: "user", content: inquiry });
