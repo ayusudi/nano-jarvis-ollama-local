@@ -102,20 +102,9 @@ const chat = async (messages, handler) => {
     return answer;
 };
 
-const REPLY_PROMPT = `You are a travel assistant. You decide one best airport.
-
-Example
-User: "I want to fly from Jakarta to Medan"
-Assistant: Airport codes [CGK, KNO]
-
-User: "I want to fly from Jakarta to Beijing"
-Assistant: Airport codes [CGK, PEK]
-
-User: "I want to fly from Jakarta to California"
-Assistant: Airport codes [CGK, SFO]
-
-Now it's your turn!
-`;
+const REPLY_PROMPT = `You are a helpful answering assistant.
+Your task is to reply and respond to the user politely and concisely.
+Answer in plain text (concisely, maximum 3 sentences) and not in Markdown format.`;
 
 const reply = async (context) => {
     const { inquiry, history, stream } = context;
@@ -174,7 +163,7 @@ Assistant: Airport codes `,
             console.log("Assistant:", answer);
             console.log("       (in", duration, "ms)");
             console.log();
-            history.push({ inquiry, answer, duration });
+            // history.push({ inquiry, answer, duration });
         } else {
             console.error(`${url} is 404!`);
             response.writeHead(404);
