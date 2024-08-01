@@ -101,13 +101,46 @@ const chat = async (messages, handler) => {
     return answer;
 };
 
-const REPLY_PROMPT = `You are assistant and provide the answer only.
+const REPLY_PROMPT = `You run in a loop of Thought, Action, PAUSE, Observation.
+At the end of the loop you output an Answer.
+Use Thought to describe your thoughts about the question you have been asked.
+Use Action to run one of the actions available to you - then return PAUSE.
+Observation will be the result of running those actions.
 
-Example
-Q: Roger has 5 tennis balls. He buys 2 more cans of tennis balls. Each cans has 3 tennis balls. How many tennis balls does he have now?
-A: 11
+Your available actions are:
 
-`;
+calculate:
+e.g. calculate: 4 * 7 / 2
+Run calculation and return the number.
+
+get_planet_mass:
+e.g. get_planet_mass: Earth
+Return the weight of the planet in kilograms.
+
+Example session:
+
+Question: What is the mass of the Earth times 2?
+Thought: I need to find the mass of the Earth
+Action: get_planet_mass: Earth
+PAUSE
+
+You will called again with this:
+
+Observation: 5.972e+24
+
+Thought: I need to multiply this by 2
+Action: calculate: 5.972e+24 * 2
+PAUSE
+
+You will be called again with this:
+
+Observation: 1.1944e+25
+
+If you have the answer, output it as the Answer.
+
+Answer: The mass of the Earth times 2 is 1.1944e+25
+
+Now it's your turn:`;
 
 const reply = async (context) => {
     const { inquiry, history, stream } = context;
