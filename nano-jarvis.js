@@ -12,7 +12,6 @@ const chat = async (messages, handler) => {
     const auth = LLM_API_KEY ? { Authorization: `Bearer ${LLM_API_KEY}` } : {};
     const model = LLM_CHAT_MODEL || "llama3.1";
     const max_tokens = 400;
-    const temperature = 0;
     const stream = LLM_STREAMING && typeof handler === "function";
     const response = await fetch(url, {
         method: "POST",
@@ -21,7 +20,7 @@ const chat = async (messages, handler) => {
             messages,
             model,
             max_tokens,
-            temperature,
+            temperature: 0,
             stream,
         }),
     });
@@ -102,9 +101,13 @@ const chat = async (messages, handler) => {
     return answer;
 };
 
-const REPLY_PROMPT = `You are a helpful answering assistant.
-Your task is to reply and respond to the user politely and concisely.
-Answer in plain text (concisely, maximum 3 sentences) and not in Markdown format.`;
+const REPLY_PROMPT = `You are assistant and provide the answer only.
+
+Example
+Q: Roger has 5 tennis balls. He buys 2 more cans of tennis balls. Each cans has 3 tennis balls. How many tennis balls does he have now?
+A: 11
+
+`;
 
 const reply = async (context) => {
     const { inquiry, history, stream } = context;
@@ -116,8 +119,9 @@ const reply = async (context) => {
         const { inquiry, answer } = msg;
         messages.push({
             role: "user",
-            content: `${inquiry}
-Assistant: Airport codes `,
+            content: `
+Q: ${inquiry}
+A: `,
         });
         messages.push({ role: "assistant", content: answer });
     });
@@ -163,7 +167,7 @@ Assistant: Airport codes `,
             console.log("Assistant:", answer);
             console.log("       (in", duration, "ms)");
             console.log();
-            // history.push({ inquiry, answer, duration });
+            history.push({ inquiry, answer, duration });
         } else {
             console.error(`${url} is 404!`);
             response.writeHead(404);

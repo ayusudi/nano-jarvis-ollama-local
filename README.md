@@ -34,10 +34,10 @@ export LLM_API_KEY="yourownapikey"
 export LLM_CHAT_MODEL="meta-llama/llama-3-8b-instruct"
 ```
 
-## Prompt Example
+## Prompt Example for CoT
 
-- Can you speak Bahasa Indonesia?
-- When your training data cutoff?
+- While shopping for music online, Zoe bought 3 country albums and 5 pop albums. Each album came with a lyric sheet and had 3 songs. How many songs did Zoe buy total? (the right answer is 24)
+- The cafeteria had 23 apples. If they used 20 to make lunch and bought 6 more, how many apples do they have? (the right answer is 9)
 
 ## References
 
