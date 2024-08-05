@@ -1,26 +1,24 @@
 import fs from "fs";
 import http from "http";
 
-const LLM_API_BASE_URL =
-    process.env.LLM_API_BASE_URL || "http://localhost:11434/v1";
-const LLM_API_KEY = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
-const LLM_CHAT_MODEL = process.env.LLM_CHAT_MODEL;
-const LLM_STREAMING = process.env.LLM_STREAMING !== "no";
+const LLM_API_BASE_URL = process.env.LLM_API_BASE_URL || "http://localhost:5678";
+const LLM_CHAT_MODEL = process.env.LLM_CHAT_MODEL || "llama3"
+const LLM_STREAMING = false
 
 const chat = async (messages, handler) => {
-    const url = `${LLM_API_BASE_URL}/chat/completions`;
-    const auth = LLM_API_KEY ? { Authorization: `Bearer ${LLM_API_KEY}` } : {};
-    const model = LLM_CHAT_MODEL || "llama3.1";
+    const url = `${LLM_API_BASE_URL}/api/chat`;
+    const model = LLM_CHAT_MODEL
     const max_tokens = 400;
-    const stream = LLM_STREAMING && typeof handler === "function";
+    const temperature = 0;
+    const stream = LLM_STREAMING
     const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...auth },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             messages,
             model,
             max_tokens,
-            temperature: 0,
+            temperature,
             stream,
         }),
     });
@@ -32,9 +30,7 @@ const chat = async (messages, handler) => {
 
     if (!stream) {
         const data = await response.json();
-        const { choices } = data;
-        const first = choices[0];
-        const { message } = first;
+        const { message } = data;
         const { content } = message;
         const answer = content.trim();
         handler && handler(answer);
@@ -101,114 +97,24 @@ const chat = async (messages, handler) => {
     return answer;
 };
 
-const REPLY_PROMPT = `You run in a loop of Thought, Action, PAUSE, Observation.
-At the end of the loop you output an Answer.
-Use Thought to describe your thoughts about the question you have been asked.
-Use Action to run one of the actions available to you - then return PAUSE.
-Observation will be the result of running those actions.
-
-Your available actions are:
-
-
-get_exchange_rate:
-e.g. get_exchange_rate: USD to EUR
-Return the exchange rate between two currencies.
-
-Example session:
-
-Question:How much is $125 in IDR?
-Thought: I need to find the exchange rate between USD and IDR
-Action: get_exchange_rate: USD to IDR
-PAUSE
-
-You will called again with this:
-
-Observation: 1 USD = 15000 IDR
-
-Thought: I need to multiply this by 125
-Action: calculate: 125 * 15000
-PAUSE
-
-You will be called again with this:
-
-Observation: 125 * 15000 = 1875000
-
-If you have the answer, output it as the Answer.
-
-Answer: 125 USD is equal to 1,875,000 IDR.
-
-Now it's your turn:`;
-
-async function get_exchange_rate(from, to) {
-    const url = `https://api.exchangerate-api.com/v4/latest/${from}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(
-            `HTTP error with the status: ${response.status} ${response.statusText}`,
-        );
-    }
-    const data = await response.json();
-    return data.rates[to];
-}
-
-function calculate(expression) {
-    return eval(expression);
-}
-
-const tools = ["calculate", "get_exchange_rate"];
+const REPLY_PROMPT = `You are a helpful answering assistant.
+Your task is to reply and respond to the user politely and concisely.
+Answer in plain text (concisely, maximum 3 sentences) and not in Markdown format.`;
 
 const reply = async (context) => {
-    const { inquiry, history, stream, attempt } = context;
-    const tried = context.attempt || 0;
+    const { inquiry, history, stream } = context;
 
     const messages = [];
     messages.push({ role: "system", content: REPLY_PROMPT });
     const relevant = history.slice(-4);
     relevant.forEach((msg) => {
         const { inquiry, answer } = msg;
-        messages.push({
-            role: "user",
-            content: inquiry,
-        });
+        messages.push({ role: "user", content: inquiry });
         messages.push({ role: "assistant", content: answer });
     });
     messages.push({ role: "user", content: inquiry });
     const answer = await chat(messages, stream);
-    console.log("LLM:", answer);
 
-    let nextPrompt = "";
-    if (answer.includes("PAUSE") && answer.includes("Action")) {
-        const action = answer.split("Action:")[1].split("PAUSE")[0];
-        const tool = action.split(":")[0].split(":")[0].trim();
-        const args = action.split(":")[1].split("\n")[0].trim().split(" to ");
-
-        if (tools.includes(tool)) {
-            if (tool === "get_exchange_rate") {
-                const from = args[0];
-                const to = args[1];
-                const rate = await get_exchange_rate(from, to);
-                nextPrompt = `Observation: 1 ${from} = ${rate} ${to}`;
-            } else if (tool === "calculate") {
-                const expression = args[0];
-                const result = calculate(expression);
-                nextPrompt = `Observation: ${args[0]} = ${result}`;
-            } else {
-                nextPrompt = "Observation: tool not found";
-            }
-        }
-        history.push({ inquiry, answer: nextPrompt });
-        if (nextPrompt !== "" && tried < 4) {
-            const response = await reply({
-                inquiry: nextPrompt,
-                history,
-                stream,
-                attempt: tried + 1,
-            });
-        }
-    }
-    if (answer.includes("Answer")) {
-        return;
-    }
     return { answer, ...context };
 };
 
@@ -245,8 +151,8 @@ const reply = async (context) => {
             response.end();
 
             const { answer } = result;
-            // console.log("Assistant:", answer);
-            // console.log("       (in", duration, "ms)");
+            console.log("Assistant:", answer);
+            console.log("       (in", duration, "ms)");
             console.log();
             history.push({ inquiry, answer, duration });
         } else {
